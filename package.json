@@ -1,0 +1,42 @@
+{
+  "name": "Alliance-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alliance-api",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^7.6.0",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "*",
+    "cloudinary": "^1.28.1",
+    "cors": "*",
+    "crypto": "^1.0.1",
+    "dotenv": "^14.2.0",
+    "ejs": "^3.1.6",
+    "express": "*",
+    "express-session": "^1.17.2",
+    "firebase-admin": "^4.2.1",
+    "handlebars": "^4.7.7",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.21",
+    "mongoose": "*",
+    "mongoose-auto-increment": "^3.0.1",
+    "multer": "^1.4.4",
+    "node-mailjet": "^3.0.5",
+    "node-media-server": "^2.3.8",
+    "nodemon": "^2.0.15",
+    "passport": "^0.5.2",
+    "passport-local": "^1.0.0",
+    "request": "^2.88.2",
+    "sentiment": "^5.0.2",
+    "underscore": "^1.13.2",
+    "uuid": "^8.3.2",
+    "v-response": "^1.1.0"
+  },
+  "author": "Femithz",
+  "license": "ISC"
+}
