@@ -36,12 +36,8 @@ router.get('/', (req,res) => {
 // Authentication Routes 
 router.post('/login', authCtrl.login);
 router.post('/register', authCtrl.register);
-router.get('/watch', authCtrl.watch);
-router.get('/watch_list', authCtrl.getAllWatchList);
-router.post('/password_reset', authCtrl.reset);
-// router.post('/register/:id', authCtrl.register_referral);
 
-
+router.post('/emailVerification', JwtHelper.verifyJwtToken, authCtrl.verifyEmail);
 router.get('/userInfo', JwtHelper.verifyJwtToken, authCtrl.userinfo);
 router.post('/changePassword', JwtHelper.verifyJwtToken, authCtrl.changePassword);
 router.get('/getCode', JwtHelper.verifyJwtToken, authCtrl.referral_code);

@@ -1,23 +1,12 @@
-var express=require('express');
-var session = require('express-session');
-var path=require('path');
+const express=require('express');
+const session = require('express-session');
+const path=require('path');
 const dotenv = require('dotenv').config();
 require("./config/db").connect();
-var cors = require('cors');
-var passport = require('passport');
-const fs = require('fs');
-const Handlebars = require('handlebars');
-const mailjet = require ('node-mailjet')
-.connect(process.env.MJ_APIKEY_PUBLIC, process.env.MJ_APIKEY_PRIVATE);
-
-
-// Watch list email template
-// Open template file
-const source = fs.readFileSync(path.join(__dirname, './utils/template/watchlist.handlebars'), 'utf8');
-// Create email generator
-const template = Handlebars.compile(source);
+const cors = require('cors');
+const passport = require('passport');
 // intialize express instance
-var app = express();
+const app = express();
 
 
 // declare routing section

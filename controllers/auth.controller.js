@@ -5,124 +5,180 @@ const Referral = require('../models/referrals');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const _ = require('lodash');
-const fs = require('fs'),
-path = require('path');
-const Handlebars = require('handlebars');
-const mailjet = require ('node-mailjet')
-.connect(process.env.MJ_APIKEY_PUBLIC, process.env.MJ_APIKEY_PRIVATE);
-
-
-// Watch list email template
-// Open template file
-var source = fs.readFileSync(path.join(__dirname, '../utils/template/watchlist.handlebars'), 'utf8');
-// Create email generator
-var template = Handlebars.compile(source);
+const sendEmail = require("../utils/sendEmail");
 
 module.exports = {
-                      reset : async(req, res) => {                        
-                      },
-                      // Function to get all watch list
-                      getAllWatchList : async(req, res, next) => {
-                        WatchList.find()
-                        .select()
-                        .exec()
-                        .then(docs => { 
-                            if(docs) {
-                                res.status(200).json({
-                                  data: docs,
-                                  message: "WatchList fetched successfully"
+                       // Register Function
+                       register : async(req, res) => {
+                        let  encryptedPassword = await bcrypt.hash(req.body.password, 10);     
+                        User.findOne({email:req.body.email}, async (err,user) => {
+                          if (user) {
+                            return res.status(500).json({message:'User with this email already exist'})
+                          } else {
+                                let user = new User({
+                                    name: req.body.name,
+                                    email:req.body.email,
+                                    username: req.body.username,
+                                    password: encryptedPassword,
+                                    c_password: req.body.c_password,
+                                    visible: req.body.visible,
+                                    status: req.body.status,
+                                    created_dt:Date.now()
                                 });
-                            } else {
-                                res.status(404).json();
-                            } 
-                        })
-                        .catch(err => {
-                                  res.status(500).json({err: err});
-                        })
+                                  // Create token
+                                  let email = req.body.email;
+                                  const token = jwt.sign(
+                                    { user_id: user._id, email },
+                                    process.env.JWT_SECRET,
+                                    {
+                                      expiresIn: "2h",
+                                    }
+                                  );
+                                  // save user token
+                                  user.token = token;
+                                  user.save(function (err,user) {
+                                    if (err) {
+                                        return res.status(500).json({
+                                          message: err.message,
+                                          token: user.token,
+                                          status: err.statusCode
+                                        })
+                                        } else {
+                                          console.log('user data re naw', user);
+                                            // email verification token
+                                            let token =  new Token({
+                                              userId: user._id,
+                                              token: Math.floor(Math.random() * 999999)
+                                            })
+                                            token.save();
+                                           //  invoke email service sender
+                                           sendEmail(
+                                             user.email,
+                                             user.name,
+                                            "Welcome Note",
+                                            { name: user.name,
+                                              emailVerificationCode: token['token']
+                                             },
+                                            "../utils/template/welcome.handlebars"
+                                          );  
+                                            return  res.status(200).json({
+                                            user:   _.pick(user,
+                                            ['name','email','token']),
+                                            message:'User created successfully',        
+                                        });
+                                    }
+                                })
+                                
+                          }
+                        })                          
                        },
-                      // Watch list
-                      watch: async(req, res) => {  
-                        console.log(req.body);
-                         // Rough codes 
-                         const request = mailjet
-                         .post("send", {'version': 'v3.1'})
-                         .request({
-                           "Messages":[
-                             {
-                               "From": {
-                                 "Email": `${process.env.MJ_COMPANY_EMAIL}`,
-                                 "Name":  `${process.env.MJ_COMPANY_NAME}`
-                               },
-                               "To": [
-                                 {
-                                   "Email": req.body.email,
-                                 }
-                               ],
-                               "Subject": " Welcome to Prudential Invest plc ",
-                               // "TextPart": "My first Mailjet email",
-                               "HTMLPart": template(),
-                             }
-                           ]
-                         })      
-                         return  request.then((result) => {
-                           console.log(result.body)
-                           res.status(200).json({
-                             message: 'You have been successfully added to the watchlist',        
-                         });
-                         })
-                         .catch((err) => {
-                           console.log(err);
-                           console.log(err.statusCode)
-                         })     
-                        // WatchList.findOne({email:req.body.email}, (err,result) => {
-                        //         if (result) {
-                        //           return res.status(500).json({message:'User with this email already exist'})
-                        //         } else {
-                        //                 let watchList = new WatchList({
-                        //                     email:req.body.email,
-                        //                     created_at:Date.now()
-                        //                 });
-                        //                 watchList.save(function (err, result) {
-                        //                       if (err) {
-                        //                           return res.status(500).json({
-                        //                             message: err.message
-                        //                           })
-                        //                           } else {  
-                        //                             // Rough codes 
-                        //                             const request = mailjet
-                        //                               .post("send", {'version': 'v3.1'})
-                        //                               .request({
-                        //                                 "Messages":[
-                        //                                   {
-                        //                                     "From": {
-                        //                                       "Email": `${process.env.MJ_COMPANY_EMAIL}`,
-                        //                                       "Name":  `${process.env.MJ_COMPANY_NAME}`
-                        //                                     },
-                        //                                     "To": [
-                        //                                       {
-                        //                                         "Email": req.body.email,
-                        //                                       }
-                        //                                     ],
-                        //                                     "Subject": " Welcome to our WatchList!!! ",
-                        //                                     // "TextPart": "My first Mailjet email",
-                        //                                     "HTMLPart": template(),
-                        //                                   }
-                        //                                 ]
-                        //                               })      
-                        //                               return  request.then((result) => {
-                        //                                 console.log(result.body)
-                        //                                 res.status(200).json({
-                        //                                   message: 'You have been successfully added to the watchlist',        
-                        //                               });
-                        //                               })
-                        //                               .catch((err) => {
-                        //                                 console.log(err.statusCode)
-                        //                               })         
-                                                    
-                        //                       }
-                        //                   })
-                        //         }
-                        // })                          
+                      // Email verification function
+                      verifyEmail : async(req, res) => {
+                        User.findOne({_id: req.user.user_id}, async (err, user) => {
+                          if (!user) {
+                              return res.status(404).json({status: false, message: 'User not Found.'})
+                          } else {
+                            const submitted_token = req.body.token;
+                            Token.findOne({token: submitted_token}, async(err, token_result) => {
+                              if(err) {
+                                console.log('token error', err)
+                              } else {
+                                console.log('na token result re', token_result)
+                                  let query = {_id: req.user.user_id};
+                                  let update = {emailverified: true }
+                                  User.findOneAndUpdate(query, update,
+                                    (err, result) => {
+                                      if(err) {
+                                      return res.status(501).json({
+                                        status: false,
+                                        message: 'An issue occur.',
+                                        error: err.message
+                                        })
+                                      } else {
+                                        console.log('User data to be updated', result);
+                                        Token.deleteOne({token: req.body.token}, function (err, token) {
+                                          if (err) {
+                                              return res.status(404).json({
+                                                status: false,
+                                                message: 'An issue occur.',
+                                                error: err.message
+                                                })
+                                          } else {
+                                            console.log('token deleted already', token);
+                                            sendEmail(
+                                              result.email,
+                                              result.name,
+                                            "Email Verification",
+                                            { name: result.name
+                                              },
+                                            "../utils/template/emailverification.handlebars"
+                                          ); 
+                                            // save user logs so as to keep track of user activity 
+                                            let log_message = 'user just verified email address';   
+                                            let new_log = new Log({
+                                                        userId: req.user.user_id,
+                                                        log_message: log_message,
+                                                        created_dt: Date.now()
+                                                    })
+                                                    new_log.save().then(result => {
+                                                        return result
+                                                    }).catch(error => {
+                                                    return error;
+                                              });
+                                            return res.status(200).json({
+                                              message: 'Email has been verified',        
+                                            });
+                                          }
+                                      }); 
+                                      }
+                                    }
+                                  )
+                              }
+                            });
+                          }
+                        })
+                      },
+                      //  Login Function
+                      login : async (req, res, next) => {
+                        try {
+                                //  Get user inout data
+                                const { email, password } = req.body;
+                                // validator to check if all input are filled up
+                                if (!(email && password)) {
+                                  res.status(501).json({
+                                    message: 'ensure the two fields are filled with data',
+                                  });
+                                }
+                                // function to check if email exist in db
+                              const user = await User.findOne({email:req.body.email});
+                              if (user && (await bcrypt.compare(password, user.password))) {
+                                  // Generate an access token
+                                  const accessToken = jwt.sign({ id: user._id, role: user.role },  process.env.JWT_SECRET, { expiresIn: '365d' });
+                                  // save user token
+                                  user.token = accessToken;
+                                  // save user logs so as to keep track of user activity 
+                                  let log_message = 'User logged in successfully';   
+                                  let new_log = new Log({
+                                            userId: user.user_id || user._id ,
+                                            log_message: log_message,
+                                            created_dt: Date.now()
+                                        })
+                                        new_log.save().then(result => {
+                                            return result
+                                        }).catch(error => {
+                                        return error;
+                                  });
+                                return res.status(200).json({
+                                    message:'Login Success',
+                                    role:  user.role,
+                                    token: user.token
+                                });
+                              }
+                        } catch(err) {
+                            return res.status(501).json({
+                                message: err.message
+                            });
+                      }
                       },
                       // My referrals
                        myReferrals: async(req, res) => {
@@ -196,115 +252,6 @@ module.exports = {
                             message: 'User is not signed in'
                           });
                         }
-                      },
-                      // Register Function
-                      register : async(req, res) => {
-                        // await User.hashPassword();
-                              let password = req.body.password;      
-                              User.findOne({email:req.body.email}, (err,user) => {
-                                if (user) {
-                                  return res.status(500).json({message:'User with this email already exist'})
-                                } else {
-                                      let user = new User({
-                                          name: req.body.name,
-                                          email:req.body.email,
-                                          phone_number: req.body.phone_number,
-                                          username: req.body.username,
-                                          password: password,
-                                          referral_code: req.body.referral_code,
-                                          c_password: req.body.c_password,
-                                          role: req.body.role ,
-                                          created_dt:Date.now()
-                                      });
-                                      if (!req.body.referral_code) {
-                                          user.save(function (err,user) {
-                                              if (err) {
-                                                console.log(err);
-                                                  return res.status(500).json({
-                                                    message: err.message
-                                                  })
-                                                  } else { 
-                                                    console.log('user re oo', user);
-                                                    let referral = new Referral({
-                                                      referral_code: uuidv4(),
-                                                      userid: user._id,
-                                                    })
-                                                    referral.save();
-                                                        // Sending order detail email
-                                                        const mailOptions = {
-                                                          to: req.body.email,
-                                                          from: process.env.FROM_EMAIL,
-                                                          subject: `${obj.subject}`,
-                                                          html:  htmlTemplate
-                                                      };
-                                                      sgMail.send(mailOptions)                  
-                                                      return  res.status(200).json({
-                                                      user:   _.pick(user, ['name','email','phonenumber', 'photo', 'role']),
-                                                      message: 'User created successfully',        
-                                                  });
-                                              }
-                                          })
-                                      } else {
-                                        user.save(function (err,user) {
-                                          if (err) {
-                                              return res.status(500).json({
-                                                message: err.message
-                                              })
-                                              } else { 
-                                                Referral.findOne({referral_code: req.body.referral_code}, (err, result) => {
-
-                                                })
-                                                let referral = new Referral({
-                                                  referral_code: uuidv4(),
-                                                  userid: user._id,
-                                                })
-                                                referral.save();
-                                                //  Generate 20 bit activation code, with ‘crypto’ is a nodejs built in package.
-                                                      // Sending order detail email
-                                                      const mailOptions = {
-                                                        to: req.body.email,
-                                                        from: process.env.FROM_EMAIL,
-                                                        subject: `${obj.subject}`,
-                                                        html:  htmlTemplate
-                                                    };
-                                                    sgMail.send(mailOptions)            
-                                                  return  res.status(200).json({
-                                                  user:   _.pick(user, ['name','email','phone_number', 'photo', 'role']),
-                                                  message:'User created successfully',        
-                                              });
-                                          }
-                                      })
-                                      }
-                                }
-                              })                          
-                      },
-                      // Register with referral
-                      //  Login Function
-                      login : async (req, res, next) => {
-                        // method to call Passport js authenticate function
-                        await  passport.authenticate('local', function(err, user, info) {
-                            if (err) { 
-                              return res.status(500).json({
-                                message: err.message
-                              })
-                          }
-                            if (!user) { 
-                              return res.status(501).json(info);
-                              }
-                            req.logIn(user,function(err) {
-                              if (err) { 
-                                return res.status(501).json({err: err});
-                              } else {
-                              // Generate an access token
-                              const accessToken = jwt.sign({ id: user._id },  process.env.JWT_SECRET);
-                                return res.status(200).json({
-                                  message:'Login Success',
-                                  role:  user.role,
-                                  token: accessToken
-                                });
-                              }
-                            });
-                        })(req, res, next);
                       },
                       // Get referral code
                       referral_code : async (req, res, next) => {
