@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 const passport = require('passport');
 const User = require('../models/user');
+const Token = require('../models/token');
 const Referral = require('../models/referrals');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const _ = require('lodash');
@@ -19,15 +21,16 @@ module.exports = {
                                     name: req.body.name,
                                     email:req.body.email,
                                     username: req.body.username,
+                                    phone_number: req.body.phone_number,
                                     password: encryptedPassword,
-                                    c_password: req.body.c_password,
+                                    referral_code: req.body.referral_code,
                                     visible: req.body.visible,
                                     status: req.body.status,
                                     created_dt:Date.now()
                                 });
                                   // Create token
                                   let email = req.body.email;
-                                  const token = jwt.sign(
+                                  let token = jwt.sign(
                                     { user_id: user._id, email },
                                     process.env.JWT_SECRET,
                                     {
@@ -38,13 +41,14 @@ module.exports = {
                                   user.token = token;
                                   user.save(function (err,user) {
                                     if (err) {
+                                        console.log('Error re oo', err);
                                         return res.status(500).json({
                                           message: err.message,
-                                          token: user.token,
+                                          // token: user.token,
                                           status: err.statusCode
                                         })
                                         } else {
-                                          console.log('user data re naw', user);
+                                            console.log('user re', user);
                                             // email verification token
                                             let token =  new Token({
                                               userId: user._id,
@@ -52,6 +56,7 @@ module.exports = {
                                             })
                                             token.save();
                                            //  invoke email service sender
+                                           console.log('Token re', token);
                                            sendEmail(
                                              user.email,
                                              user.name,

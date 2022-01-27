@@ -28,6 +28,9 @@ var UserSchema=mongoose.Schema({
        unique: true,
        match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
     },
+    token: {
+        type: String
+   },
     password:{
         type:String,
         require:true
