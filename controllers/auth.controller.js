@@ -8,8 +8,44 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const _ = require('lodash');
 const sendEmail = require("../utils/sendEmail");
-
+const mailjet = require ('node-mailjet')
+.connect(process.env.MJ_APIKEY_PUBLIC, process.env.MJ_APIKEY_PRIVATE);
 module.exports = {
+                        // mailjet
+                        mail: async(req, res) => {
+                           // Rough codes 
+                           const mailjet = require ('node-mailjet')
+                           .connect('81b7d5c0cf4356c310315640795441d4', '1eaee42bc77173c2ec098d3368ea48e3')
+                           const request = mailjet
+                           .post("send", {'version': 'v3.1'})
+                           .request(
+                            {
+                              "Messages":[
+                                {
+                                    "From": {
+                                        "Email": "info@prudentialinvestplc.com",
+                                        "Name": "Mailjet Pilot"
+                                    },
+                                    "To": [
+                                        {
+                                            "Email": "ajayiadeyinka6991@gmail.com",
+                                            "Name": "passenger 1"
+                                        }
+                                    ],
+                                    "Subject": "Your email flight plan!",
+                                    "TextPart": "Dear passenger 1, welcome to Mailjet! May the delivery force be with you!",
+                                    "HTMLPart": "<h3>Dear passenger 1, welcome to <a href=\"https://www.mailjet.com/\">Mailjet</a>!</h3><br />May the delivery force be with you!"
+                                }
+                            ]}
+                             )
+                         request
+                           .then((result) => {
+                             console.log('Success re oo', result.body)
+                           })
+                           .catch((err) => {
+                             console.log('Error re oo', err)
+                           })
+                        },
                        // Register Function
                        register : async(req, res) => {
                         let  encryptedPassword = await bcrypt.hash(req.body.password, 10);     
@@ -56,7 +92,6 @@ module.exports = {
                                             })
                                             token.save();
                                            //  invoke email service sender
-                                           console.log('Token re', token);
                                            sendEmail(
                                              user.email,
                                              user.name,
