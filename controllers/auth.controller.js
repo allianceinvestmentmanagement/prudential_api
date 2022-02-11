@@ -11,41 +11,6 @@ const sendEmail = require("../utils/sendEmail");
 const mailjet = require ('node-mailjet')
 .connect(process.env.MJ_APIKEY_PUBLIC, process.env.MJ_APIKEY_PRIVATE);
 module.exports = {
-                        // mailjet
-                        mail: async(req, res) => {
-                           // Rough codes 
-                           const mailjet = require ('node-mailjet')
-                           .connect('81b7d5c0cf4356c310315640795441d4', '1eaee42bc77173c2ec098d3368ea48e3')
-                           const request = mailjet
-                           .post("send", {'version': 'v3.1'})
-                           .request(
-                            {
-                              "Messages":[
-                                {
-                                    "From": {
-                                        "Email": "info@prudentialinvestplc.com",
-                                        "Name": "Mailjet Pilot"
-                                    },
-                                    "To": [
-                                        {
-                                            "Email": "ajayiadeyinka6991@gmail.com",
-                                            "Name": "passenger 1"
-                                        }
-                                    ],
-                                    "Subject": "Your email flight plan!",
-                                    "TextPart": "Dear passenger 1, welcome to Mailjet! May the delivery force be with you!",
-                                    "HTMLPart": "<h3>Dear passenger 1, welcome to <a href=\"https://www.mailjet.com/\">Mailjet</a>!</h3><br />May the delivery force be with you!"
-                                }
-                            ]}
-                             )
-                         request
-                           .then((result) => {
-                             console.log('Success re oo', result.body)
-                           })
-                           .catch((err) => {
-                             console.log('Error re oo', err)
-                           })
-                        },
                        // Register Function
                        register : async(req, res) => {
                         let  encryptedPassword = await bcrypt.hash(req.body.password, 10);     
@@ -77,14 +42,12 @@ module.exports = {
                                   user.token = token;
                                   user.save(function (err,user) {
                                     if (err) {
-                                        console.log('Error re oo', err);
                                         return res.status(500).json({
                                           message: err.message,
                                           // token: user.token,
                                           status: err.statusCode
                                         })
                                         } else {
-                                            console.log('user re', user);
                                             // email verification token
                                             let token =  new Token({
                                               userId: user._id,
@@ -95,7 +58,7 @@ module.exports = {
                                            sendEmail(
                                              user.email,
                                              user.name,
-                                            "Welcome Note",
+                                            "Welcome to Prudential Invest",
                                             { name: user.name,
                                               emailVerificationCode: token['token']
                                              },
@@ -121,9 +84,7 @@ module.exports = {
                             const submitted_token = req.body.token;
                             Token.findOne({token: submitted_token}, async(err, token_result) => {
                               if(err) {
-                                console.log('token error', err)
                               } else {
-                                console.log('na token result re', token_result)
                                   let query = {_id: req.user.user_id};
                                   let update = {emailverified: true }
                                   User.findOneAndUpdate(query, update,
@@ -135,7 +96,6 @@ module.exports = {
                                         error: err.message
                                         })
                                       } else {
-                                        console.log('User data to be updated', result);
                                         Token.deleteOne({token: req.body.token}, function (err, token) {
                                           if (err) {
                                               return res.status(404).json({
@@ -144,27 +104,14 @@ module.exports = {
                                                 error: err.message
                                                 })
                                           } else {
-                                            console.log('token deleted already', token);
                                             sendEmail(
                                               result.email,
                                               result.name,
                                             "Email Verification",
-                                            { name: result.name
-                                              },
+                                            { name: result.name},
                                             "../utils/template/emailverification.handlebars"
                                           ); 
                                             // save user logs so as to keep track of user activity 
-                                            let log_message = 'user just verified email address';   
-                                            let new_log = new Log({
-                                                        userId: req.user.user_id,
-                                                        log_message: log_message,
-                                                        created_dt: Date.now()
-                                                    })
-                                                    new_log.save().then(result => {
-                                                        return result
-                                                    }).catch(error => {
-                                                    return error;
-                                              });
                                             return res.status(200).json({
                                               message: 'Email has been verified',        
                                             });

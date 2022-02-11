@@ -36,7 +36,7 @@ router.get('/', (req,res) => {
 // Authentication Routes 
 router.post('/login', authCtrl.login);
 router.post('/register', authCtrl.register);
-router.get('/mail', authCtrl.mail);
+
 router.post('/emailVerification', JwtHelper.verifyJwtToken, authCtrl.verifyEmail);
 router.get('/userInfo', JwtHelper.verifyJwtToken, authCtrl.userinfo);
 router.post('/changePassword', JwtHelper.verifyJwtToken, authCtrl.changePassword);
